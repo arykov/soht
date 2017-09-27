@@ -1,0 +1,13 @@
+bin/
+lib/
+**/*.out
+**/dependency-reduced-pom.xml
+**/*.bak
+**/.project
+**/.settings
+**/.classpath
+**/target
+**/*.log
+**/.springBeans
+**/.metadata
+**/mvntarget
