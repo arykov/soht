@@ -158,7 +158,7 @@ public class Proxy extends Thread
                 // Start the proxy threads.
                 if( configurationManager.isUseStatelessConnection() ) {
                     log.debug("Using ReadWrite Thread.");
-                    new ProxyReadWrite( getName() + "-ReadWrite", configurationManager, connectionId, socket ).start();
+                    new ProxyReadWriteJson( getName() + "-ReadWriteJson", configurationManager, connectionId, socket ).start();
                 }
                 // Use the normal stateful read connection.
                 else {
