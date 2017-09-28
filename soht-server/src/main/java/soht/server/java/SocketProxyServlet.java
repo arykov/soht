@@ -627,7 +627,14 @@ public class SocketProxyServlet extends AbstractHandler
     }
 
     public static void main(String[] args) throws Exception{
-		Server server = new Server(8080);
+    	int port = 80;
+    	try {
+    		port = Integer.parseInt(args[0]);
+    		System.out.println(String.format("Will bind to port %s", port));;
+    	}catch(Exception ex) {
+    		System.out.println("Will bind to port 80. In the future you could pass port as a parameter.");;
+    	}
+		Server server = new Server(port);
 		server.setHandler(new SocketProxyServlet());
 		server.start();
 		server.dumpStdErr();
@@ -636,4 +643,4 @@ public class SocketProxyServlet extends AbstractHandler
 	}
 }
 
-//EOF
+
