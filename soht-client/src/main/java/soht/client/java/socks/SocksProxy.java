@@ -22,6 +22,7 @@ import soht.client.java.core.ProxyReadWrite;
 import soht.client.java.core.ProxyReadWriteJson;
 import soht.client.java.core.ProxyReader;
 import soht.client.java.core.ProxyWriter;
+import static soht.client.java.configuration.ConfigurationManager.ConnectionModes;
 import org.apache.log4j.Logger;
 
 /**
@@ -172,18 +173,29 @@ public class SocksProxy extends Proxy {
         long connectionId = openHost();
 
         // Start the proxy threads.
-        if( configurationManager.isUseStatelessConnection() ) {
+        switch( configurationManager.getConnectionMode() ) {
+        case STATELESS:
             System.out.println("Using ReadWrite Thread.");
-            BaseProxy proxy = new ProxyReadWriteJson( 
+            BaseProxy proxy = new ProxyReadWrite( 
+            	getName() + "-ReadWrite", 
+				configurationManager, 
+				connectionId, 
+				socksSocket);
+            
+            proxy.start();
+            break;
+        case STATELESS_JSON:
+            System.out.println("Using ReadWriteJson Thread.");
+            proxy = new ProxyReadWriteJson( 
             	getName() + "-ReadWriteJson", 
 				configurationManager, 
 				connectionId, 
 				socksSocket);
             
             proxy.start();
-        }
-        // Use the normal stateful read connection.
-        else {
+            break;
+        
+        case STATEFUL:
             System.out.println("Using seperate Read and Write threads.");
             
             BaseProxy readProxy = new ProxyReader( 

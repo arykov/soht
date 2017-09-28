@@ -63,8 +63,9 @@ public class ConfigurationManager
     // Constants
     //***************************************************************
 
-    public static final int MODE_STATEFUL = 0;
-    public static final int MODE_STATELESS = 1;
+	public static enum ConnectionModes{
+		STATELESS, STATELESS_JSON, STATEFUL;
+	}
 
     //***************************************************************
     // Variables
@@ -77,7 +78,7 @@ public class ConfigurationManager
     private boolean serverLoginRequired;
     private String serverUsername;
     private String serverPassword;
-    private boolean useStatelessConnection;
+    private ConnectionModes connectionMode;
 
     private boolean useHTTPProxy;
     private String proxyHost;
@@ -181,13 +182,10 @@ public class ConfigurationManager
         this.serverPassword = serverPassword;
     }
 
-    public boolean isUseStatelessConnection() {
-        return useStatelessConnection;
+    public ConnectionModes getConnectionMode() {
+        return connectionMode;
     }
 
-    public void setUseStatelessConnection(boolean useStatelessConnection) {
-        this.useStatelessConnection = useStatelessConnection;
-    }
 
     public boolean isUseHTTPProxy()
     {
@@ -348,8 +346,8 @@ public class ConfigurationManager
         }
 
         // Load the connection mode.
-        String connectionMode = properties.getProperty( "server.stateless", "false" );
-        useStatelessConnection = Boolean.valueOf( connectionMode ).booleanValue();
+        connectionMode = ConnectionModes.valueOf(properties.getProperty( "server.mode", ConnectionModes.STATEFUL.toString()));
+        
 
         // Load HTTP Proxy
         String useProxyString = properties.getProperty( "proxy.useproxy", "false" );

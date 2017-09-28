@@ -48,6 +48,7 @@ import java.text.MessageFormat;
 
 import soht.client.java.configuration.Host;
 import soht.client.java.configuration.ConfigurationManager;
+import static soht.client.java.configuration.ConfigurationManager.ConnectionModes.*;
 import org.apache.log4j.Logger;
 
 /**
@@ -156,15 +157,19 @@ public class Proxy extends Thread
                 log.debug( "Connection opened to Server." );
 
                 // Start the proxy threads.
-                if( configurationManager.isUseStatelessConnection() ) {
-                    log.debug("Using ReadWrite Thread.");
-                    new ProxyReadWriteJson( getName() + "-ReadWriteJson", configurationManager, connectionId, socket ).start();
-                }
-                // Use the normal stateful read connection.
-                else {
-                    log.debug("Using seperate Read and Write threads.");
+                switch(configurationManager.getConnectionMode()) {
+                case STATEFUL:
+                	log.debug("Using seperate Read and Write threads.");
                     new ProxyReader( getName() + "-Reader", configurationManager, connectionId, socket ).start();
                     new ProxyWriter( getName() + "-Writer", configurationManager, connectionId, socket ).start();
+                	break;
+                case STATELESS:
+                	log.debug("Using ReadWrite Thread.");
+                    new ProxyReadWrite( getName() + "-ReadWrite", configurationManager, connectionId, socket ).start();
+                	break;
+                case STATELESS_JSON:
+                	log.debug("Using ReadWriteJson Thread.");
+                    new ProxyReadWriteJson( getName() + "-ReadWriteJson", configurationManager, connectionId, socket ).start();
                 }
             }
             catch( IOException ioException )
