@@ -19,10 +19,8 @@ import soht.client.java.configuration.Host;
 import soht.client.java.core.BaseProxy;
 import soht.client.java.core.Proxy;
 import soht.client.java.core.ProxyReadWrite;
-import soht.client.java.core.ProxyReadWriteJson;
 import soht.client.java.core.ProxyReader;
 import soht.client.java.core.ProxyWriter;
-import static soht.client.java.configuration.ConfigurationManager.ConnectionModes;
 import org.apache.log4j.Logger;
 
 /**
@@ -184,13 +182,14 @@ public class SocksProxy extends Proxy {
             
             proxy.start();
             break;
-        case STATELESS_JSON:
-            System.out.println("Using ReadWriteJson Thread.");
-            proxy = new ProxyReadWriteJson( 
-            	getName() + "-ReadWriteJson", 
+        case STATELESS_TEXT:
+            System.out.println("Using ReadWriteText Thread.");
+            proxy = new ProxyReadWrite( 
+            	getName() + "-ReadWriteText", 
 				configurationManager, 
 				connectionId, 
-				socksSocket);
+				socksSocket, 
+				true);
             
             proxy.start();
             break;

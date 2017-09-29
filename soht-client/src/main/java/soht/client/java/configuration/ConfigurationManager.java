@@ -64,7 +64,7 @@ public class ConfigurationManager
     //***************************************************************
 
 	public static enum ConnectionModes{
-		STATELESS, STATELESS_JSON, STATEFUL;
+		STATELESS, STATELESS_TEXT, STATEFUL;
 	}
 
     //***************************************************************

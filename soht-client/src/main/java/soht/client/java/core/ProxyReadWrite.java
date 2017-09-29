@@ -48,6 +48,7 @@ import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.HttpURLConnection;
 import java.net.SocketException;
+import java.util.Base64;
 
 import soht.client.java.configuration.ConfigurationManager;
 
@@ -76,15 +77,22 @@ public class ProxyReadWrite extends BaseProxy
 
     /** The output stream to write to the local client */
     private OutputStream out;
+    
+    private boolean textEncoded;
 
     //***************************************************************
     // Constructor
     //***************************************************************
 
     public ProxyReadWrite( String name, ConfigurationManager configurationManager, long connectionId, Socket socket ) throws IOException {
+    	this(name, configurationManager, connectionId, socket, false);
+    }
+
+    public ProxyReadWrite( String name, ConfigurationManager configurationManager, long connectionId, Socket socket, boolean textEncoded ) throws IOException {
 
         super( name, configurationManager, connectionId, socket );
 
+        this.textEncoded = textEncoded;
         this.in = socket.getInputStream();
         this.out = socket.getOutputStream();
     }
@@ -93,6 +101,7 @@ public class ProxyReadWrite extends BaseProxy
     // Thread Methods
     //***************************************************************
 
+    
     public void run() {
 
         boolean isRunning = true;
@@ -174,7 +183,11 @@ public class ProxyReadWrite extends BaseProxy
 				//Write parameters.
 				out = new BufferedWriter(new OutputStreamWriter(urlConnection
 						.getOutputStream()));
-				out.write("action=readwrite");
+				if(textEncoded) {
+					out.write("action=readwritetext");
+				}else {
+					out.write("action=readwrite");
+				}
 				out.write("&");
 				out.write("id="+connectionId);
 				out.write("&");
@@ -188,6 +201,9 @@ public class ProxyReadWrite extends BaseProxy
 
 				urlConnection.connect();
 				InputStream serverInputStream = urlConnection.getInputStream();
+				if(textEncoded) {
+					serverInputStream = Base64.getUrlDecoder().wrap(serverInputStream);
+				}
 
 				// Read data from the server and write it to our local client.
 

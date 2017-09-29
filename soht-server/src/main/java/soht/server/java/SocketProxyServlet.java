@@ -57,9 +57,6 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 /**
  * Handles communcation betwen client and proxy.
@@ -168,7 +165,7 @@ public class SocketProxyServlet extends AbstractHandler
             //READ
             else if( action != null && action.equals( "read" ) ) {
                 log.debug( "Read request recieved." );
-                read( id, response, true );
+                read( id, response, true, false );
             }
             //WRITE
             else if( action != null && action.equals( "write" ) ) {
@@ -177,11 +174,11 @@ public class SocketProxyServlet extends AbstractHandler
             }
             else if( action != null && action.equals( "readwrite" ) ) {
                 log.debug( "Read/Write request recieved." );
-                readWrite( id, request, response );
+                readWrite( id, request, response, false );
             }
-            else if( action != null && action.equals( "readwriteJson" ) ) {
+            else if( action != null && action.equals( "readwritetext" ) ) {
                 log.debug( "Read/Write request recieved." );
-                readWriteJson( id, request, response );
+                readWrite( id, request, response, true );
             }
         }
     }
@@ -243,7 +240,7 @@ public class SocketProxyServlet extends AbstractHandler
      * @param response the connection to the client.
      * @param block true if the thread should block while waiting for data.
      */
-    private void read( long id, HttpServletResponse response, boolean block ) {
+    private void read( long id, HttpServletResponse response, boolean block, boolean encode ) {
 
         byte[] bytes = new byte[1024 * blockSize];
         int count;
@@ -258,6 +255,13 @@ public class SocketProxyServlet extends AbstractHandler
             //Open the output stream to write to the client, and the input stream to read
             //from the proxied telnet connection.
             OutputStream out = response.getOutputStream();
+            response.setContentType(encode?"text/plain":"application/octet-stream");
+            response.setHeader("Content-Type", encode?"text/plain":"application/octet-stream");
+            OutputStream responseOut = out;
+            if(encode) {
+            	out = Base64.getUrlEncoder().wrap(out);
+            	
+            }
             ConnectionInfo info = connectionManager.getConnection( id );
 
             if( info == null ) {
@@ -301,7 +305,8 @@ public class SocketProxyServlet extends AbstractHandler
                 //A count of -1 indicates that the inputstream has been closed.
                 if ( count == -1 ) {
                     out.write( 0 );
-                    out.close();
+                    close(out, responseOut);
+                    
                     connectionManager.removeConnection( info.getConnectionId() );
                     log.info( "Removing connection because the remote server closed the connection." );
                     break;
@@ -324,13 +329,15 @@ public class SocketProxyServlet extends AbstractHandler
                     isFirst = false;
                 }
                 out.write( bytes, 0, count );
-                out.flush();
-
                 // If we are not in blocking mode, break out of the loop.
                 if( !block ) {
-                    out.close();
+                	close(out, responseOut);;
                     break;
                 }
+
+                //this causes chunked transfer encoding
+                out.flush();
+
             }
         }
         catch( IOException ioe ) {
@@ -348,7 +355,18 @@ public class SocketProxyServlet extends AbstractHandler
         }
     }
 
-    /**
+    private void close(OutputStream ... oss) {
+		for(OutputStream os:oss) {
+			try {
+				os.close();
+			}catch(Exception ex) {
+				
+			}
+		}
+		
+	}
+
+	/**
      * Processes a WRITE request from the client and writes the data sent from
      * the client to the proxied connection.
      *
@@ -407,160 +425,14 @@ public class SocketProxyServlet extends AbstractHandler
      * @param request used to read the WRITE data from the client.
      * @param response used to write the READ data to the client.
      */
-    private void readWrite( long id, HttpServletRequest request, HttpServletResponse response ) {
+    private void readWrite( long id, HttpServletRequest request, HttpServletResponse response, boolean encode ) {
 
         // Do the WRITE part.
         write( id, request );
-        read( id, response, false );
+        read( id, response, false, encode );
     }
 
-    /**
-     * Handles a READ request from the client.  Data is read from the
-     * proxied connection and written to the client.
-     *
-     * @param id the proxied connection id.
-     * @param response the connection to the client.
-     * @param block true if the thread should block while waiting for data.
-     */
-    private void readJson( long id, HttpServletResponse response ) {
 
-        byte[] bytes = new byte[1024 * blockSize];
-        int count;
-
-        if( log.isDebugEnabled() ) log.debug( "Read Buffer Size: " + bytes.length );
-
-        try {
-
-            //Add to the count of "Reader Threads"
-            addReader();
-
-            ConnectionInfo info = connectionManager.getConnection( id );
-
-            if( info == null ) {
-                log.error( "Client requested a connection that was closed (connectionId:" + id + ")." );
-                response.getWriter().write("{status:0}");
-              	response.getWriter().flush();
-               	response.getWriter().close();
-                return;
-            }
-
-            InputStream in = info.getInputStream();
-
-            
-            info.getSocket().setSoTimeout( 100 );
-            
-            count = 0;
-                
-            try {
-                count = in.read( bytes );
-            }
-            catch (SocketTimeoutException timeoutException ) {
-                // This is normal, this just means that no data was
-                // ready to be read.
-            }
-                
-                //A count of -1 indicates that the inputstream has been closed.
-            if ( count == -1 ) {
-            	response.getWriter().write("{status:0}");
-              	response.getWriter().flush();
-               	response.getWriter().close();
-                connectionManager.removeConnection( info.getConnectionId() );
-                log.info( "Removing connection because the remote server closed the connection." );
-                return;
-            }
-
-                // Log the actual bytes read/written.
-            if( log.isDebugEnabled() ) {
-                log.debug( "Client read " + count + " bytes.");
-                StringBuffer debugOut = new StringBuffer( "Data: " );
-                for( int index = 0; index < count; index++ ) {
-                    debugOut.append( (int)bytes[index] );
-                    debugOut.append( "," );
-                }
-                log.debug( debugOut );
-            }
-
-            //Write the data to the HTTP client.
-            response.getWriter().write(String.format("{status:1, data:\"%s\"}", Base64.getUrlEncoder().encodeToString(Arrays.copyOf(bytes, count))));
-            response.getWriter().flush();
-            response.getWriter().close();            
-        }
-        catch( IOException ioe ) {
-            //This just means the connection was closed.  This is fine.
-        }
-        catch( Throwable t ) {
-            log.error( "Non IO Error occured while reading from the proxied telnet connection. " + t.getMessage(), t );
-        }
-        finally {
-            //This "ReaderThread" is ending, so remove it from the count.
-            removeReader();
-        }
-    }
-
-    /**
-     * Processes a WRITE request from the client and writes the data sent from
-     * the client to the proxied connection.
-     *
-     * @param id the proxied connection id.
-     * @param request used to read the WRITE data from the client.
-     */
-    private void writeJson( long id, HttpServletRequest request ) {
-
-        try {
-            addWriter();
-
-            ConnectionInfo info = connectionManager.getConnection( id );
-            if( info != null ) {
-
-                OutputStream socketOut = info.getOutputStream();
-
-                // Read the Data and decode it into bytes.
-                String data = request.getParameter( "data" );
-                JsonObject json = new JsonParser().parse(data).getAsJsonObject();
-                byte [] decodedBytes = Base64.getUrlDecoder().decode(json.get("data").getAsString());                
-
-                if( log.isDebugEnabled() ) {
-                    log.debug( "Client wrote " + decodedBytes.length+ " bytes." );
-                    StringBuffer debugOut = new StringBuffer( "Data: " );
-                    for( int index = 0; index < decodedBytes.length; index++ ) {
-                        debugOut.append( (int)decodedBytes[index] );
-                        debugOut.append( "," );
-                    }
-                    log.debug( debugOut );
-                }
-
-                socketOut.write( decodedBytes );
-            }
-            else {
-                log.info( "Write method attempted to write to a closed connection" );
-            }
-        }
-        catch( IOException ioe ) {
-            //This just means the connection was closed.  This is fine.
-        }
-        catch( Throwable t ) {
-            connectionManager.removeConnection( id );
-            log.error( "Non IO Error occured while writing to the proxied telnet connection. " + t.getMessage(), t );
-        }
-        finally {
-            removeWriter();
-        }
-    }    
-    /**
-     * Processes a READ/WRITE request from the client.  Writes the data sent from
-     * the client to the proxied connection and reads data from the proxied connection
-     * and writes it to the client.
-     *
-     * @param id the proxied connection id.
-     * @param request used to read the WRITE data from the client.
-     * @param response used to write the READ data to the client.
-     */
-    private void readWriteJson( long id, HttpServletRequest request, HttpServletResponse response ) {
-
-        // Do the WRITE part.
-        writeJson( id, request );
-        readJson( id, response );
-    }
 
 
     /**

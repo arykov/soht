@@ -167,9 +167,9 @@ public class Proxy extends Thread
                 	log.debug("Using ReadWrite Thread.");
                     new ProxyReadWrite( getName() + "-ReadWrite", configurationManager, connectionId, socket ).start();
                 	break;
-                case STATELESS_JSON:
+                case STATELESS_TEXT:
                 	log.debug("Using ReadWriteJson Thread.");
-                    new ProxyReadWriteJson( getName() + "-ReadWriteJson", configurationManager, connectionId, socket ).start();
+                    new ProxyReadWrite( getName() + "-ReadWriteJson", configurationManager, connectionId, socket, true ).start();
                 }
             }
             catch( IOException ioException )
