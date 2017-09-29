@@ -65,8 +65,8 @@ public class ProxyReadWrite extends BaseProxy
     // Constants
     //***************************************************************
 
-	private static final long DEFAULT_SLEEP_TIME = 200;
-	private static final long MAX_SLEEP_TIME = 2000;
+	private static final long DEFAULT_SLEEP_TIME = 1000;
+	private static final long MAX_SLEEP_TIME = 600000;
 
     //***************************************************************
     // Variables
@@ -154,7 +154,7 @@ public class ProxyReadWrite extends BaseProxy
 						}
 						if (inputCount == 0)
 						{
-							sleepTime += 200;
+							sleepTime *= 2;
 							if (sleepTime >= MAX_SLEEP_TIME)
 								sleepTime = MAX_SLEEP_TIME;
 						}
