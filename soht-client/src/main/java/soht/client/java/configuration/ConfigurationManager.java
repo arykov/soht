@@ -79,13 +79,6 @@ public class ConfigurationManager
     private String serverUsername;
     private String serverPassword;
     private ConnectionModes connectionMode;
-
-    private boolean useHTTPProxy;
-    private String proxyHost;
-    private String proxyPort;
-    private String proxyLogin;
-    private String proxyPassword;
-
     private boolean socksServerEnabled;
     private int socksServerPort;
     
@@ -187,35 +180,6 @@ public class ConfigurationManager
     }
 
 
-    public boolean isUseHTTPProxy()
-    {
-        return useHTTPProxy;
-    }
-
-    public void setUseHTTPProxy( boolean useHTTPProxy )
-    {
-        this.useHTTPProxy = useHTTPProxy;
-    }
-
-    public String getProxyHost()
-    {
-        return proxyHost;
-    }
-
-    public void setProxyHost( String proxyHost )
-    {
-        this.proxyHost = proxyHost;
-    }
-
-    public String getProxyPort()
-    {
-        return proxyPort;
-    }
-
-    public void setProxyPort( String proxyPort )
-    {
-        this.proxyPort = proxyPort;
-    }
 
     public List getHosts()
     {
@@ -225,26 +189,6 @@ public class ConfigurationManager
     public void setHosts( List hosts )
     {
         this.hosts = hosts;
-    }
-
-    public String getProxyLogin()
-    {
-        return proxyLogin;
-    }
-
-    public void setProxyLogin( String proxyLogin )
-    {
-        this.proxyLogin = proxyLogin;
-    }
-
-    public String getProxyPassword()
-    {
-        return proxyPassword;
-    }
-
-    public void setProxyPassword( String proxyPassword )
-    {
-        this.proxyPassword = proxyPassword;
     }
 
 
@@ -290,23 +234,10 @@ public class ConfigurationManager
         urlConnection.setRequestMethod( "POST" );
 
 
-        // If proxy login specified then sets basic proxy authorization
-        if (useHTTPProxy && getProxyLogin() != null)
-        {
-            String authString = getProxyLogin() + ":"  + getProxyPassword();
-            String auth = "Basic " + new sun.misc.BASE64Encoder().encode(authString.getBytes());
-            urlConnection.setRequestProperty("Proxy-Authorization", auth);
-        }
-
 
         urlConnection.setDoOutput(true);
 
-        if( useHTTPProxy )
-        {
-            System.getProperties().put( "proxySet", "true" );
-            System.getProperties().put( "proxyHost", proxyHost );
-            System.getProperties().put( "proxyPort", String.valueOf( proxyPort ) );
-        }
+        
 
         return urlConnection;
     }
@@ -347,21 +278,6 @@ public class ConfigurationManager
 
         // Load the connection mode.
         connectionMode = ConnectionModes.valueOf(properties.getProperty( "server.mode", ConnectionModes.STATEFUL.toString()));
-        
-
-        // Load HTTP Proxy
-        String useProxyString = properties.getProperty( "proxy.useproxy", "false" );
-        useHTTPProxy = Boolean.valueOf( useProxyString ).booleanValue();
-        if( useHTTPProxy )
-        {
-            proxyHost = getRequiredProperty( "proxy.host" );
-            proxyPort = getRequiredProperty( "proxy.port" );
-
-            // Optional proxy server login information.
-            proxyLogin = properties.getProperty( "proxy.login" );
-            proxyPassword = properties.getProperty( "proxy.password" );
-
-        }
 
         // Load SOCKS server settings
         String socksServerEnabledString = properties.getProperty("socks.server.enabled", "false");
