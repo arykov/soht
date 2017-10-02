@@ -75,6 +75,7 @@ public class ConfigurationManager
     private String propertiesFile;
 
     private String serverURL;
+    private boolean disableHostNameVerification;
     private boolean serverLoginRequired;
     private String serverUsername;
     private String serverPassword;
@@ -215,15 +216,17 @@ public class ConfigurationManager
          // https connection
          HttpsURLConnection urlSConnection = (HttpsURLConnection) url.openConnection();
 
-         // from : http://www.kickjava.com/?http://www.kickjava.com/1930.htm
-         urlSConnection.setHostnameVerifier(new HostnameVerifier()
-         {
-          public boolean verify(String hostname, SSLSession session)
-          {
-           // I don't care if the certificate doesn't match host name
-           return true;
-          }
-         });
+         if(disableHostNameVerification) {
+        	 // from : http://www.kickjava.com/?http://www.kickjava.com/1930.htm
+        	 urlSConnection.setHostnameVerifier(new HostnameVerifier()
+        	 {
+        		 public boolean verify(String hostname, SSLSession session)
+        		 {
+        			 // I don't care if the certificate doesn't match host name
+        			 return true;
+        		 }
+        	 });
+         }
 
          urlConnection = urlSConnection;
         }
@@ -266,6 +269,7 @@ public class ConfigurationManager
 
         // Load server properties
         serverURL = getRequiredProperty( "server.url" );
+        disableHostNameVerification = Boolean.parseBoolean(properties.getProperty("tls.disableHostnameVerification", "false"));
         String serverLoginRequiredString = properties.getProperty( "server.loginrequired", "false" );
         serverLoginRequired = Boolean.valueOf( serverLoginRequiredString ).booleanValue();
         // Load the server username/password if a login is required.
